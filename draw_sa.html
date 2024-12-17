@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAssembly Example</title>
+    <style>
+        canvas {
+            border: 0px solid black; /* Add a black border to the canvas */
+            margin-top: 0px;
+            -moz-transform: scale(1, -1);
+            image-rendering: pixelated;
+    -o-transform: scale(1, -1);
+    -webkit-transform: scale(1, -1);
+    transform: scale(1, -1);
+        }
+    </style>
+</head>
+<body>
+    <h1>WebAssembly Example</h1>
+    <canvas id="specCanvas" width="152" height="32"></canvas>
+
+    <input type="file" id="audioFileInput" accept="audio/*" />
+    <script src="draw_sa.js"></script>
+    <script src="FFTNullsoft.js"></script>
+    <script src="thefunny.js"></script>
+</body>
+</html>
