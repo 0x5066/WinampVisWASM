@@ -24,7 +24,7 @@ Module.onRuntimeInitialized = function () {
     // Set up audio context and analyser
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
-    BUFFER_SIZE = 2048;
+    BUFFER_SIZE = 1024;
     analyser.fftSize = BUFFER_SIZE;
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
