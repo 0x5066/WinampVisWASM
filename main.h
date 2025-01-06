@@ -1,4 +1,4 @@
-// compile with emcc -o draw_sa.js draw_sa.cpp SA.cpp classic_vis.cpp SABuffer.cpp vu.cpp FFTNullsoft.cpp wa_stubs.cpp -s NO_EXIT_RUNTIME=1 -s "EXPORTED_FUNCTIONS=['_get_specData', '_free_specData', '_malloc', '_free', '_get_config_sa', '_set_config_sa', '_SpectralAnalyzer_Create', '_sa_setthread', '_sa_init', '_sa_addpcmdata', '_get_config_sa', '_set_config_sa', '_in_getouttime', '_set_playtime']" -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" --std=c++23 -pthread -g3
+// compile with emcc -o draw_sa.js draw_sa.cpp SA.cpp classic_vis.cpp SABuffer.cpp vu.cpp FFTNullsoft.cpp wa_stubs.cpp -s NO_EXIT_RUNTIME=1 -s "EXPORTED_FUNCTIONS=['_get_specData', '_free_specData', '_malloc', '_free', '_get_config_sa', '_set_config_sa', '_SpectralAnalyzer_Create', '_sa_setthread', '_sa_init', '_get_config_sa', '_set_config_sa', '_in_getouttime', '_set_playtime', '_start_sa_addpcmdata_thread', '_vu_init']" -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" --std=c++23 -pthread -g3
 
 #include <pthread.h>
 #include <poll.h>
