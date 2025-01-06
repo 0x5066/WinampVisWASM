@@ -188,7 +188,7 @@ Module.onRuntimeInitialized = function () {
         ctx.putImageData(imageData, 0, 0);
 
         // Loop the function
-        setTimeout(updateAndRender, 1000 / 60); // Approximately 60 FPS
+        requestAnimationFrame(updateAndRender)
     }
 
     // Start the loop
