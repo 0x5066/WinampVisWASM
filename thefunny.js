@@ -1,14 +1,30 @@
 Module.onRuntimeInitialized = function () {
+    function mulDiv(a, b, c) {
+        if (c === 0) {
+            throw new Error("Division by zero");
+        }
+        // Perform division first if possible to avoid overflow
+        if (Math.abs(a) < Math.abs(c)) {
+            return Math.round((a * b) / c);
+        } else {
+            return Math.round(a * (b / c));
+        }
+    }
+    if (Module._pthread_main_thread_initialize) {
+        Module._pthread_main_thread_initialize();
+    }
+    console.log("Pthreads initialized.");
+
+    if (typeof SharedArrayBuffer === 'undefined') {
+        console.error("Browser does not support SharedArrayBuffer. Pthreads cannot be used.");
+    }
+    
     console.log("WASM Module Loaded!");
+    BUFFER_SIZE = 2048;
     // Allocate a char array in memory for `values`
-    const values = Module._malloc(152); // Example: 10 bytes
+    const values = Module._malloc(BUFFER_SIZE * 2);
 
-    // Allocate memory for vuData (e.g., 4 bytes)
-    const vuData = Module._malloc(4);
-
-    // Initialize vuData with some values
-    const vuDataArray = [1, 2, 3, 4];
-    Module.HEAPU8.set(vuDataArray, vuData);
+    const audioBufferPtr = Module._malloc(BUFFER_SIZE * 4); // Float32: 4 bytes per value
 
     // Canvas setup
     const canvas = document.getElementById("specCanvas");
@@ -19,126 +35,109 @@ Module.onRuntimeInitialized = function () {
     const specDataHeight = 16 * 2;
     const specDataLength = specDataWidth * specDataHeight; // 1 byte per pixel (grayscale)
 
-    const fft = new FFT();
-
-    // Set up audio context and analyser
+    // Set up audio context and analysers for stereo
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    const analyser = audioContext.createAnalyser();
-    BUFFER_SIZE = 1024;
-    analyser.fftSize = BUFFER_SIZE;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+    const splitter = audioContext.createChannelSplitter(2);
+    const analyserLeft = audioContext.createAnalyser();
+    const analyserRight = audioContext.createAnalyser();
+    analyserLeft.fftSize = BUFFER_SIZE;
+    analyserRight.fftSize = BUFFER_SIZE;
+    const bufferLength = analyserLeft.frequencyBinCount;
+    const leftData = new Uint8Array(bufferLength);
+    const rightData = new Uint8Array(bufferLength);
     console.log(bufferLength);
-    let sample = new Float32Array(BUFFER_SIZE).fill(0);
 
     let audioSource = null;
 
-    let outSpectraldata = new Float32Array(BUFFER_SIZE / 2);
-
     let currentConfig = Module._get_config_sa();
 
+    Module._SpectralAnalyzer_Create();
+
+    const newConfig = (currentConfig + 1) % 4; // Cycle: 0 -> 1 -> 2 -> 0
+    Module._set_config_sa(newConfig);
+    Module._sa_setthread(newConfig);
+
+    // Log the updated value
+    currentConfig = Module._get_config_sa();
+
+    // for some reason firefox hates this, chrome is behaving though
+    //int latency = output->Open(sample_rate, channels, bps, buffer_len_ms, pre_buffer_ms);
+    const latency = (audioContext.sampleRate, 2, 16, 500, 0);
+    const maxlatency_in_ms = latency;
+    console.log("Max latency in ms:", latency);
+    const nf = mulDiv(maxlatency_in_ms * 4, audioContext.sampleRate, 450000);
+
+    Module._sa_init(nf);
+    Module._vu_init(nf, audioContext.sampleRate);
+
+    // Start the sa_addpcmdata_thread in a new thread with values
+    Module.ccall('start_sa_addpcmdata_thread', null, ['number'], [values]);
+
     // Input element for selecting an audio file
+    const audioPlayer = document.getElementById('audioPlayer');
     const audioFileInput = document.getElementById("audioFileInput");
-    audioFileInput.addEventListener("change", function (event) {
-    const file = event.target.files[0];
+
+    audioFileInput.addEventListener("change", function(e) {
+        const file = e.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                audioContext.decodeAudioData(e.target.result, function (buffer) {
-                    // Stop the previous audio if any
-                    if (audioSource) {
-                        audioSource.stop();
-                    }
-                    // Create a new audio buffer source from the uploaded file
-                    audioSource = audioContext.createBufferSource();
-                    audioSource.buffer = buffer;
-                    audioSource.connect(analyser);
-                    analyser.connect(audioContext.destination);
-                    audioSource.start(0);
-                });
+            const objectURL = URL.createObjectURL(file);
+            audioPlayer.src = objectURL;
+            
+            // Clean up the object URL when it's no longer needed
+            audioPlayer.onended = function() {
+                URL.revokeObjectURL(objectURL);
             };
-            reader.readAsArrayBuffer(file);
+        }
+    });
+
+    // Connect audio player to analyzers when playing starts
+    audioPlayer.addEventListener('play', async function() {
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+        if (!audioSource) {
+            audioSource = audioContext.createMediaElementSource(audioPlayer);
+            audioSource.connect(splitter);
+            splitter.connect(analyserLeft, 0);
+            splitter.connect(analyserRight, 1);
+            audioSource.connect(audioContext.destination);
         }
     });
 
     canvas.addEventListener('click', () => {
         // Get the current value of config_sa
-        console.log("Current config_sa value:", currentConfig);
+        //console.log("Current config_sa value:", currentConfig);
 
         // Toggle or set a new value for config_sa
-        const newConfig = (currentConfig + 1) % 3; // Cycle: 0 -> 1 -> 2 -> 0
+        const newConfig = (currentConfig + 1) % 4; // Cycle: 0 -> 1 -> 2 -> 0
         Module._set_config_sa(newConfig);
+        Module._sa_setthread(newConfig);
 
         // Log the updated value
         currentConfig = Module._get_config_sa();
-        console.log("Updated config_sa value:", currentConfig);
+        //console.log("Updated config_sa value:", currentConfig);
     });
 
-    function adjustFFT(outSpectraldata){
-        const maxFreqIndex = 512;
-        const logMaxFreqIndex = Math.log10(maxFreqIndex);
-        const logMinFreqIndex = 0;
-        const scale = 0.95;
-
-        const targetSize = 75;
-
-        for (let x = 0; x < targetSize; x++) {
-            const linearIndex = x / (targetSize - 1) * (maxFreqIndex - 1);
-            const logScaledIndex = logMinFreqIndex + (logMaxFreqIndex - logMinFreqIndex) * x / (targetSize - 1);
-            const logIndex = Math.pow(10, logScaledIndex);
-            const scaledIndex = (1.0 - scale) * linearIndex + scale * logIndex;
-            let index1 = Math.floor(scaledIndex);
-            let index2 = Math.ceil(scaledIndex);
-
-            if (index1 >= maxFreqIndex) {
-                index1 = maxFreqIndex - 1;
-            }
-            if (index2 >= maxFreqIndex) {
-                index2 = maxFreqIndex - 1;
-            }
-
-                if (index1 === index2) {
-                    sample[x] = outSpectraldata[index1];
-                } else {
-                    const frac2 = scaledIndex - index1;
-                    const frac1 = 1.0 - frac2;
-                    sample[x] = frac1 * outSpectraldata[index1] + frac2 * outSpectraldata[index2];
-                }
-            }
-        }
-
     function updateAndRender() {
-        // Get the audio data (time domain)
-        analyser.getByteTimeDomainData(dataArray);
+        // Get both channels
+        analyserLeft.getByteTimeDomainData(leftData);
+        analyserRight.getByteTimeDomainData(rightData);
+    
+        // Allocate for stereo (twice the size)
+        const dataArray16 = new Int16Array(leftData.length * 2); // *2 for stereo
 
-        // Copy audio data to `values` in WebAssembly memory
-        const draw = 1; // Example integer value
-        for (let i = 0; i < 75; i++) {
-            // Store FFT data into the first 75 positions
-            const fftValue = Math.round(sample[i] * 4); // Round the FFT value
-            const transformedFFTValue = fftValue; // Clamp to -128..127
-            Module.HEAP8[values + i] = transformedFFTValue; // Store FFT value
-
-            // Store audio data into the next 75 positions
-            const audioValue = ((dataArray[Math.floor(i * (dataArray.length / 75))] - 128) / 8) + 32.5;
-            const transformedAudioValue = audioValue; // Clamp to -128..127
-            Module.HEAP8[values + i + 76] = transformedAudioValue; // Store raw audio value
+        // Interleave left and right channels
+        for (let i = 0; i < leftData.length; i++) {
+            dataArray16[i * 2] = (leftData[i] - 128) << 8;     // Left channel
+            dataArray16[i * 2 + 1] = (rightData[i] - 128) << 8; // Right channel
         }
 
-        const inputArray = new Float32Array(BUFFER_SIZE);
-        analyser.getFloatTimeDomainData(inputArray);
-        fft.timeToFrequencyDomain(inputArray, outSpectraldata);
-
-        adjustFFT(outSpectraldata);
-
-        // Call the `draw_sa` function to update `specData`
-        //Module._calcVuData(vuData, values2, 1, 16);
-        if (currentConfig === 1){
-            Module._draw_sa(values, draw, vuData);
-        } else {
-            Module._draw_sa(values+76, draw, vuData);
-        }
-
+        Module.HEAP16.set(dataArray16, values >> 1);
+        Module._set_playtime(audioPlayer.currentTime * 1000);
+        //console.log(values);
+        //Module._sa_addpcmdata(values, 2, 16, Module._in_getouttime());
+        //console.log(Module._in_getouttime());
+        
         // Access the `specData` array from WASM
         const specDataPtr = Module._get_specData();
         const specData = new Uint8Array(Module.HEAPU8.buffer, specDataPtr, specDataLength);
@@ -189,7 +188,7 @@ Module.onRuntimeInitialized = function () {
         ctx.putImageData(imageData, 0, 0);
 
         // Loop the function
-        requestAnimationFrame(updateAndRender);
+        setTimeout(updateAndRender, 1000 / 60); // Approximately 60 FPS
     }
 
     // Start the loop
@@ -198,6 +197,5 @@ Module.onRuntimeInitialized = function () {
     // Clean up memory on unload (optional but good practice)
     window.addEventListener("beforeunload", () => {
         Module._free(values);
-        Module._free(vuData);
     });
 };

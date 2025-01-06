@@ -5,15 +5,20 @@
  ** Author:
  ** Created:
  **/
-/* #include "Main.h"
+/* 
+
+// emcc -o draw_sa.js draw_sa.cpp SA.cpp classic_vis.cpp SABuffer.cpp vu.cpp FFTNullsoft.cpp wa_stubs.cpp -s NO_EXIT_RUNTIME=1 -s "EXPORTED_FUNCTIONS=['_get_specData', '_free_specData', '_malloc', '_free', '_get_config_sa', '_set_config_sa', '_SpectralAnalyzer_Create', '_sa_setthread', '_sa_init', '_sa_addpcmdata', '_get_config_sa', '_set_config_sa', '_in_getouttime', '_set_playtime']" -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" --std=c++23 -pthread -s USE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -sALLOW_MEMORY_GROWTH=1
+
+#include "Main.h"
 #include "draw.h"
 #include "WADrawDC.h" */
 #include <algorithm>
-#include <emscripten/emscripten.h>
+#include <cstring>
+#include "main.h"
 
 unsigned char config_dsize = 0;
 unsigned char config_windowshade = 0;
-unsigned char config_sa = 1;
+unsigned char config_sa = 0;
 unsigned char config_safire = 4;
 unsigned char config_safalloff = 4;
 unsigned char config_sa_peaks = 1;
@@ -79,8 +84,8 @@ extern "C" {
         delete[] specData;
         specData = nullptr;
     }
+}
 
-    EMSCRIPTEN_KEEPALIVE
 	void draw_sa(char *values, int draw, unsigned char* vuData)
 	{
 		static int bx[75];
@@ -93,6 +98,8 @@ extern "C" {
 		float pfo[5]={1.05f,1.1f,1.2f,1.4f,1.6f};
 		int dbx;
 		float spfo;
+
+		//std::cout << "Called" << std::endl;
 
 		//int ws=0;
 		//s = 1;
@@ -179,7 +186,7 @@ extern "C" {
 						if (((config_safire>>2)&3)==0) for (x = 0; x < 75; x ++)
 						{
 							int v; char c;
-							v = (((int) ((signed char *)values)[x])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x])) + 8;
 							if (v < 0) v = 0 ; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							gmem[v*76*2] = c;
 							gmem++;
@@ -187,7 +194,7 @@ extern "C" {
 						else if (((config_safire>>2)&3)==1) for (x = 0; x < 75; x ++)
 						{
 							int v,t; char c;
-							v = (((int) ((signed char *)values)[x])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x])) + 8;
 							if (v < 0) v = 0 ; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							if (lv == -1) lv=v;
 							t=lv;
@@ -199,7 +206,7 @@ extern "C" {
 						else if (((config_safire>>2)&3)==2) for (x = 0; x < 75; x ++) // solid
 						{
 							int v; char c;
-							v = (((int) ((signed char *)values)[x])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x])) + 8;
 							if (v < 0) v = 0 ; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							if (v > 7) while (v > 7) gmem[v--*76*2] = c;
 							else while (v <= 7) gmem[v++*76*2] = c;
@@ -378,7 +385,7 @@ extern "C" {
 					gmem = specData+76*2*(32-5);
 					for (x = 0; x < 38; x ++)
 					{
-						int v = (((int) ((signed char *)values)[x])) + 8 - 32;
+						int v = (((int) ((signed char *)values)[x])) + 8;
 						v *= 5;
 						v /= 16;
 						if (v < 0) v = 0 ; if (v > 4) v = 4;
@@ -472,7 +479,7 @@ extern "C" {
 						if (((config_safire>>2)&3)==0) for (x = 0; x < 75*2; x += 2)
 						{
 							int v;	char c;
-							v = (((int) ((signed char *)values)[x/2])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x/2])) + 8;
 							if (v < 0) v = 0; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							gmem[v*76*2*2] = c;	gmem++[v*76*2*2 + 76*2] = c;
 							gmem[v*76*2*2] = c;	gmem++[v*76*2*2 + 76*2] = c;
@@ -480,7 +487,7 @@ extern "C" {
 						else if (((config_safire>>2)&3)==1) for (x = 0; x < 75*2; x += 2)
 						{
 							int v,t;	char c;
-							v = (((int) ((signed char *)values)[x/2])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x/2])) + 8;
 							if (v < 0) v = 0; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							if (lv == -1) lv=v;
 							t=lv;
@@ -506,7 +513,7 @@ extern "C" {
 						else if (((config_safire>>2)&3)==2) for (x = 0; x < 75*2; x += 2)
 						{
 							int v;	char c;
-							v = (((int) ((signed char *)values)[x/2])) + 8 - 32;
+							v = (((int) ((signed char *)values)[x/2])) + 8;
 							if (v < 0) v = 0; if (v > 15) v = 15; c = v/2-4; if (c < 0) c = -c; c += 18;
 							if (v > 7) while (v > 7) 
 							{
@@ -532,6 +539,7 @@ extern "C" {
 					float scaleFactor = 150.0f / 255.0f;
 					v = static_cast<int>(vuData[0] * scaleFactor);
 					v1 = static_cast<int>(vuData[1] * scaleFactor);
+					//std::cout << "VU Data: " << v << ", " << v1 << std::endl;
 					int y1 = 16; // Position of the first bar
 					int y2 = 0; // Position of the second bar, adjusted to avoid overlap
 
@@ -647,7 +655,7 @@ extern "C" {
 					gmem = specData+76*2*(32-10);
 					for (x = 0; x < 75; x ++)
 					{
-						int v = (((int) ((signed char *)values)[x])) + 8 - 32;
+						int v = (((int) ((signed char *)values)[x])) + 8;
 						v *= 10;
 						v /= 16;
 						if (v < 0) v = 0 ; if (v > 9) v = 9;
@@ -781,5 +789,3 @@ extern "C" {
 
 		sa_safe--;
 	}
-
-}
