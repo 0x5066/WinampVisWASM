@@ -177,13 +177,15 @@ Module.onRuntimeInitialized = function () {
             return colors[index][channel];
         }
 
-        for (let i = 0; i < specDataLength; i++) {
+        let i = 0;
+        for (let y = specDataHeight - 1; y >= 0; y--)
+        for (let x = 0; x < specDataWidth; x++) {
             const brightness = specData[i]; // Pixel brightness from specData
-            const baseIndex = i * 4;
-            imageData.data[baseIndex] = getColor(brightness, 0);       // Red channel
-            imageData.data[baseIndex + 1] = getColor(brightness, 1);   // Green channel
-            imageData.data[baseIndex + 2] = getColor(brightness, 2);   // Blue channel
-            imageData.data[baseIndex + 3] = 255;          // Alpha (fully opaque)
+            imageData.data[(((y * specDataWidth) + x) * 4)    ] = getColor(brightness, 0);   // Red channel
+            imageData.data[(((y * specDataWidth) + x) * 4) + 1] = getColor(brightness, 1);   // Green channel
+            imageData.data[(((y * specDataWidth) + x) * 4) + 2] = getColor(brightness, 2);   // Blue channel
+            imageData.data[(((y * specDataWidth) + x) * 4) + 3] = 255;                                      // Alpha (fully opaque)
+            i++;
         }
         ctx.putImageData(imageData, 0, 0);
 
