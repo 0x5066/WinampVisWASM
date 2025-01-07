@@ -77,6 +77,11 @@ Module.onRuntimeInitialized = function () {
     const audioPlayer = document.getElementById('audioPlayer');
     const audioFileInput = document.getElementById("audioFileInput");
 
+    const threshold = 0.01; // Define a threshold for detecting missing data
+    let silenceDuration = 0; // Counter for silence duration
+    const sampleRate = audioContext.sampleRate; // Get the sample rate of the audio context
+    const silenceThreshold = 5 * sampleRate; // 5 seconds of silence
+
     audioFileInput.addEventListener("change", function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -131,8 +136,14 @@ Module.onRuntimeInitialized = function () {
             dataArray16[i * 2] = (leftData[i] - 128) << 8;     // Left channel
             dataArray16[i * 2 + 1] = (rightData[i] - 128) << 8; // Right channel
 
-            if (rightData[i] === 0){
-               dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;  
+            // Use threshold to detect missing data and check for silence duration
+            if (Math.abs(rightData[i] - 128) < threshold) {
+                silenceDuration++;
+                if (silenceDuration > silenceThreshold) {
+                    dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;  
+                }
+            } else {
+                silenceDuration = 0; // Reset counter if there's no silence
             }
         }
 
