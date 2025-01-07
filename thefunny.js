@@ -130,6 +130,10 @@ Module.onRuntimeInitialized = function () {
         for (let i = 0; i < leftData.length; i++) {
             dataArray16[i * 2] = (leftData[i] - 128) << 8;     // Left channel
             dataArray16[i * 2 + 1] = (rightData[i] - 128) << 8; // Right channel
+
+            if (rightData === 0){
+               dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;  
+            }
         }
 
         Module.HEAP16.set(dataArray16, values >> 1);
