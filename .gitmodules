@@ -1,0 +1,3 @@
+[submodule "pffft"]
+	path = pffft
+	url = https://github.com/marton78/pffft.git

@@ -24,8 +24,6 @@ Module.onRuntimeInitialized = function () {
     // Allocate a char array in memory for `values`
     const values = Module._malloc(BUFFER_SIZE * 2);
 
-    const audioBufferPtr = Module._malloc(BUFFER_SIZE * 4); // Float32: 4 bytes per value
-
     // Canvas setup
     const canvas = document.getElementById("specCanvas");
     const ctx = canvas.getContext("2d");
@@ -62,6 +60,8 @@ Module.onRuntimeInitialized = function () {
 
     // for some reason firefox hates this, chrome is behaving though
     //int latency = output->Open(sample_rate, channels, bps, buffer_len_ms, pre_buffer_ms);
+    // setting the "pre_buffer_ms" to anything above 0 (well, anything extreme that is, like 60000)
+    // causes the nasties of low frequencies to appear a lot more often than they really should
     const latency = (audioContext.sampleRate, 2, 16, 500, 0);
     const maxlatency_in_ms = latency;
     console.log("Max latency in ms:", latency);

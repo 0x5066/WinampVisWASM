@@ -224,24 +224,17 @@ static inline float fpow2(const float y)
     return c.f;
 }
 
-FFT fft;
-extern float out_spectraldata[BUFFER_SIZE/2];
-
 //#define SAPOW(x) (powf(2.f, (float)(x)/12.f))
 #define SAPOW(x) (fpow2((float)(x)/12.f))
 //#define WARP(x) ((powf(1.1f, (float)(x)/12.f) - 1.) * bla)
 #define WARP(x) ((SAPOW(x) - 1.f) * bla)
 void makeSpecData(unsigned char *tempdata, float *wavetrum)
 {
-	int samples_in = BUFFER_SIZE;
-    int samples_out = BUFFER_SIZE / 2;
-    fft.Init(samples_in, samples_out, 0, 1.0f, false); // Initialize the FFT
 	//WARP(75);
 	float bla = (255.f/SAPOW(75.f));
-	//fft_9(wavetrum);
-	fft.time_to_frequency_domain(wavetrum, out_spectraldata);
+	fft_9(wavetrum);
 
-	float spec_scale=1.0;
+	float spec_scale=0.6;
 /* 	if (config_replaygain)
 	{ // benski> i'm sure there's some math identity we can use to optimize this.
 		spec_scale/=pow(10.0f, config_replaygain_non_rg_gain.GetFloat() / 20.0f);
@@ -250,9 +243,9 @@ void makeSpecData(unsigned char *tempdata, float *wavetrum)
 	for (int i=0;i<BUFFER_SIZE/2;i++)
 	{
 		//int lookup=2*i;
-		//float sinT = out_spectraldata[2*i];
-		float cosT = out_spectraldata[i];
-		out_spectraldata[i] = sqrt(cosT*cosT)*spec_scale;
+		float sinT = wavetrum[2*i];
+		float cosT = wavetrum[2*i+1];
+		wavetrum[i] = sqrt(sinT*sinT+cosT*cosT)*spec_scale;
 	}
 
 	float next = WARP(0)+1 ;
@@ -281,18 +274,18 @@ void makeSpecData(unsigned char *tempdata, float *wavetrum)
 				float C=0, D=0;
 				if (bin<255)
 				{
-					C=out_spectraldata[bin+1];
+					C=wavetrum[bin+1];
 					if (bin<254)
-						D=out_spectraldata[bin+2];
+						D=wavetrum[bin+2];
 				}
 
 				//float samples[4] = { wavetrum[lookupA], wavetrum[lookupB], wavetrum[lookupC], wavetrum[lookupD] };
 				//thisValue += hermite(binF-bin, samples) * mult;
-				thisValue += hermite(binF-bin, out_spectraldata[bin-1], out_spectraldata[bin], C, D) * mult;
+				thisValue += hermite(binF-bin, wavetrum[bin-1], wavetrum[bin], C, D) * mult;
 			}
 			else
 			{
-				thisValue += out_spectraldata[bin];
+				thisValue += wavetrum[bin];
 			}
 
 			herm=false;

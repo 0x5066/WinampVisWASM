@@ -2337,6 +2337,7 @@ var _sa_setthread = Module['_sa_setthread'] = createExportWrapper('sa_setthread'
 var _vu_init = Module['_vu_init'] = createExportWrapper('vu_init', 2);
 var _set_playtime = Module['_set_playtime'] = createExportWrapper('set_playtime', 1);
 var _start_sa_addpcmdata_thread = Module['_start_sa_addpcmdata_thread'] = createExportWrapper('start_sa_addpcmdata_thread', 1);
+var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var __emscripten_tls_init = createExportWrapper('_emscripten_tls_init', 0);
 var _pthread_self = () => (_pthread_self = wasmExports['pthread_self'])();
 var __emscripten_thread_init = createExportWrapper('_emscripten_thread_init', 6);
@@ -2346,7 +2347,6 @@ var _emscripten_main_thread_process_queued_calls = createExportWrapper('emscript
 var _emscripten_main_runtime_thread_id = createExportWrapper('emscripten_main_runtime_thread_id', 0);
 var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'])();
 var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports['emscripten_stack_get_end'])();
-var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var __emscripten_run_on_main_thread_js = createExportWrapper('_emscripten_run_on_main_thread_js', 5);
 var __emscripten_thread_free_data = createExportWrapper('_emscripten_thread_free_data', 1);
 var __emscripten_thread_exit = createExportWrapper('_emscripten_thread_exit', 1);

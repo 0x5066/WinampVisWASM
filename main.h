@@ -1,4 +1,5 @@
-// compile with emcc -o draw_sa.js draw_sa.cpp SA.cpp classic_vis.cpp SABuffer.cpp vu.cpp FFTNullsoft.cpp wa_stubs.cpp -s NO_EXIT_RUNTIME=1 -s "EXPORTED_FUNCTIONS=['_get_specData', '_free_specData', '_malloc', '_free', '_get_config_sa', '_set_config_sa', '_SpectralAnalyzer_Create', '_sa_setthread', '_sa_init', '_get_config_sa', '_set_config_sa', '_in_getouttime', '_set_playtime', '_start_sa_addpcmdata_thread', '_vu_init']" -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']" --std=c++23 -pthread -g3
+// compile with emcc -o draw_sa.js draw_sa.cpp SA.cpp classic_vis.cpp SABuffer.cpp vu.cpp FFT.cpp wa_stubs.cpp pffft.o     -s NO_EXIT_RUNTIME=1     -s "EXPORTED_FUNCTIONS=['_get_specData', '_free_specData', '_malloc', '_free', '_get_config_sa', '_set_config_sa', '_SpectralAnalyzer_Create', '_sa_setthread', '_sa_init', '_get_config_sa', '_set_config_sa', '_in_getouttime', '_set_playtime', '_start_sa_addpcmdata_thread', '_vu_init']"     -s "EXPORTED_RUNTIME_METHODS=['ccall', 'cwrap']"     --std=c++23 -pthread -g3     -sPTHREAD_POOL_SIZE=12
+// emcc pffft/pffft.c -c -o pffft.o -s NO_EXIT_RUNTIME=1 -s PTHREAD_POOL_SIZE=12
 
 #include <pthread.h>
 #include <poll.h>
@@ -13,10 +14,10 @@
 #include <iostream>
 #include <semaphore.h>
 //#include <SDL2/SDL.h>
-#include "FFTNullsoft.h"
 #include <emscripten/emscripten.h>
 
 // only 512 works here, why?
+// probably exists for a very good reason
 #define BUFFER_SIZE 512
 
 extern volatile int sa_override;
@@ -41,6 +42,9 @@ extern "C" void sa_init(int numframes);
 int sa_add(char *values, int timestamp, int csa);
 char *sa_get(int timestamp, int csa, char data[75*2 + 8]);
 void sa_addpcmdata(void *PCMData, int nch, int bps, int timestamp);
+
+void fft_init(); // Declare the new FFT initialization function
+void fft_9(float* input); // Declare the new FFT processing function
 
 extern "C" void vu_init(int numframes, int srate);
 void vu_deinit();

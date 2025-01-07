@@ -277,8 +277,6 @@ static void *bivis_thread(void *none)
 
 pthread_t saThread;
 
-// Define the FFT instance and buffer sizes
-float out_spectraldata[BUFFER_SIZE]; // Adjust size as per the output requirement
 extern "C" {
 EMSCRIPTEN_KEEPALIVE
 void SpectralAnalyzer_Create()
