@@ -131,7 +131,7 @@ Module.onRuntimeInitialized = function () {
             dataArray16[i * 2] = (leftData[i] - 128) << 8;     // Left channel
             dataArray16[i * 2 + 1] = (rightData[i] - 128) << 8; // Right channel
 
-            if (rightData === 0){
+            if (rightData[i] === 0){
                dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;  
             }
         }
