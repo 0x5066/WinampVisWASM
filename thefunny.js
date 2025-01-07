@@ -58,6 +58,8 @@ Module.onRuntimeInitialized = function () {
     // Log the updated value
     currentConfig = Module._get_config_sa();
 
+    let numberOfChannels;
+
     // for some reason firefox hates this, chrome is behaving though
     //int latency = output->Open(sample_rate, channels, bps, buffer_len_ms, pre_buffer_ms);
     // setting the "pre_buffer_ms" to anything above 0 (well, anything extreme that is, like 60000)
@@ -87,7 +89,23 @@ Module.onRuntimeInitialized = function () {
         if (file) {
             const objectURL = URL.createObjectURL(file);
             audioPlayer.src = objectURL;
-            
+
+            // Determine if the file is mono or stereo
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                audioContext.decodeAudioData(event.target.result, function(buffer) {
+                    numberOfChannels = buffer.numberOfChannels;
+                    if (numberOfChannels === 1) {
+                        console.log("The audio file is mono.");
+                    } else if (numberOfChannels === 2) {
+                        console.log("The audio file is stereo.");
+                    } else {
+                        console.log("The audio file has " + numberOfChannels + " channels.");
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(file);
+
             // Clean up the object URL when it's no longer needed
             audioPlayer.onended = function() {
                 URL.revokeObjectURL(objectURL);
@@ -136,14 +154,8 @@ Module.onRuntimeInitialized = function () {
             dataArray16[i * 2] = (leftData[i] - 128) << 8;     // Left channel
             dataArray16[i * 2 + 1] = (rightData[i] - 128) << 8; // Right channel
 
-            // Use threshold to detect missing data and check for silence duration
-            if (Math.abs(rightData[i] - 128) < threshold) {
-                silenceDuration++;
-                if (silenceDuration > silenceThreshold) {
-                    dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;  
-                }
-            } else {
-                silenceDuration = 0; // Reset counter if there's no silence
+            if (numberOfChannels === 1){
+                dataArray16[i * 2 + 1] = (leftData[i] - 128) << 8;
             }
         }
 
