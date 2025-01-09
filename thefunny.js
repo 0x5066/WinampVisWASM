@@ -125,20 +125,232 @@ Module.onRuntimeInitialized = function () {
             splitter.connect(analyserRight, 1);
             audioSource.connect(audioContext.destination);
         }
+        // Ensure the correct thread mode is set when playback starts
+        Module._sa_setthread(Module._get_config_sa());
     });
+
+    // Get references to the UI elements
+    const visualizationDropdown = document.getElementById('visualizationDropdown');
+    const normalRadio = document.getElementById('normal');
+    const fireRadio = document.getElementById('fire');
+    const lineRadio = document.getElementById('line');
+    const thinRadio = document.getElementById('thin');
+    const thickRadio = document.getElementById('thick');
+    const sapeaksCheckbox = document.getElementById('sapeaks');
+    const falloffSpeedRange = document.getElementById('range23');
+    const peakFalloffSpeedRange = document.getElementById('range33');
+    const dotsRadio = document.getElementById('dots');
+    const linesRadio = document.getElementById('lines');
+    const solidRadio = document.getElementById('solid');
+    const normalvuRadio = document.getElementById('normalvu');
+    const firevuRadio = document.getElementById('firevu');
+    const linevuRadio = document.getElementById('linevu');
+    const vupeaksCheckbox = document.getElementById('vupeaks');
+    const vuPeakFalloffSpeedRange = document.getElementById('range43');
+
+    // Function to save configuration settings to localStorage
+    function saveConfig() {
+        localStorage.setItem('config_sa', Module._get_config_sa());
+        localStorage.setItem('config_safire', Module._get_config_safire());
+        localStorage.setItem('config_vufire', Module._get_config_vufire());
+        localStorage.setItem('config_safalloff', Module._get_config_safalloff());
+        localStorage.setItem('config_sa_peak_falloff', Module._get_config_sa_peak_falloff());
+        localStorage.setItem('config_sa_peaks', Module._get_config_sa_peaks());
+        localStorage.setItem('config_vu_peak_falloff', Module._get_config_vu_peak_falloff());
+        localStorage.setItem('config_vu_peaks', Module._get_config_vu_peaks());
+    }
+
+    // Function to load configuration settings from localStorage
+    function loadConfig() {
+        if (localStorage.getItem('config_sa') !== null) {
+            Module._set_config_sa(parseInt(localStorage.getItem('config_sa')));
+        }
+        if (localStorage.getItem('config_safire') !== null) {
+            Module._set_config_safire(parseInt(localStorage.getItem('config_safire')));
+        }
+        if (localStorage.getItem('config_vufire') !== null) {
+            Module._set_config_vufire(parseInt(localStorage.getItem('config_vufire')));
+        }
+        if (localStorage.getItem('config_safalloff') !== null) {
+            Module._set_config_safalloff(parseInt(localStorage.getItem('config_safalloff')));
+        }
+        if (localStorage.getItem('config_sa_peak_falloff') !== null) {
+            Module._set_config_sa_peak_falloff(parseInt(localStorage.getItem('config_sa_peak_falloff')));
+        }
+        if (localStorage.getItem('config_sa_peaks') !== null) {
+            Module._set_config_sa_peaks(parseInt(localStorage.getItem('config_sa_peaks')));
+        }
+        if (localStorage.getItem('config_vu_peak_falloff') !== null) {
+            Module._set_config_vu_peak_falloff(parseInt(localStorage.getItem('config_vu_peak_falloff')));
+        }
+        if (localStorage.getItem('config_vu_peaks') !== null) {
+            Module._set_config_vu_peaks(parseInt(localStorage.getItem('config_vu_peaks')));
+        }
+    }
+
+    // Load configuration settings from localStorage
+    loadConfig();
+
+    // Ensure the correct thread mode is set based on the loaded configuration
+    Module._set_config_sa(Module._get_config_sa());
+    Module._sa_setthread(Module._get_config_sa());
 
     canvas.addEventListener('click', () => {
         // Get the current value of config_sa
         //console.log("Current config_sa value:", currentConfig);
 
         // Toggle or set a new value for config_sa
+        currentConfig = Module._get_config_sa();
         const newConfig = (currentConfig + 1) % 4; // Cycle: 0 -> 1 -> 2 -> 0
         Module._set_config_sa(newConfig);
         Module._sa_setthread(newConfig);
 
         // Log the updated value
         currentConfig = Module._get_config_sa();
-        //console.log("Updated config_sa value:", currentConfig);
+        // yeah sure, let currentConfig just exist twice, why not
+
+        // Update the dropdown value
+        visualizationDropdown.value = currentConfig;
+        saveConfig();
+    });
+
+    // Initialize UI elements with current configuration values
+    visualizationDropdown.value = Module._get_config_sa();
+    sapeaksCheckbox.checked = Module._get_config_sa_peaks() === 1;
+    vupeaksCheckbox.checked = Module._get_config_vu_peaks() === 1;
+    falloffSpeedRange.value = Module._get_config_safalloff();
+    peakFalloffSpeedRange.value = Module._get_config_sa_peak_falloff();
+    vuPeakFalloffSpeedRange.value = Module._get_config_vu_peak_falloff();
+
+    const configSafire = Module._get_config_safire();
+    if ((configSafire & 3) === 0) normalRadio.checked = true;
+    else if ((configSafire & 3) === 1) fireRadio.checked = true;
+    else if ((configSafire & 3) === 2) lineRadio.checked = true;
+
+    if ((configSafire & (1 << 5)) === 0) thickRadio.checked = true;
+    else thinRadio.checked = true;
+
+    if ((configSafire & (3 << 2)) === 0) dotsRadio.checked = true;
+    else if ((configSafire & (3 << 2)) === (1 << 2)) linesRadio.checked = true;
+    else if ((configSafire & (3 << 2)) === (2 << 2)) solidRadio.checked = true;
+
+    const configVufire = Module._get_config_vufire();
+    if (configVufire === 0) normalvuRadio.checked = true;
+    else if (configVufire === 1) firevuRadio.checked = true;
+    else if (configVufire === 2) linevuRadio.checked = true;
+
+    // Add event listeners to update the configuration variables and save them to localStorage
+    visualizationDropdown.addEventListener('change', () => {
+        Module._set_config_sa(parseInt(visualizationDropdown.value));
+        const newConfig = visualizationDropdown.value; // Cycle: 0 -> 1 -> 2 -> 0
+        Module._set_config_sa(newConfig);
+        Module._sa_setthread(newConfig);
+
+        // Log the updated value
+        currentConfig = Module._get_config_sa();
+        saveConfig();
+    });
+
+    normalRadio.addEventListener('change', () => {
+        if (normalRadio.checked) {
+            Module._set_config_safire(Module._get_config_safire() & ~3);
+            saveConfig();
+        }
+    });
+
+    fireRadio.addEventListener('change', () => {
+        if (fireRadio.checked) {
+            Module._set_config_safire((Module._get_config_safire() & ~3) | 1);
+            saveConfig();
+        }
+    });
+
+    lineRadio.addEventListener('change', () => {
+        if (lineRadio.checked) {
+            Module._set_config_safire((Module._get_config_safire() & ~3) | 2);
+            saveConfig();
+        }
+    });
+
+    thinRadio.addEventListener('change', () => {
+        if (thinRadio.checked) {
+            Module._set_config_safire(Module._get_config_safire() | (1 << 5));
+            saveConfig();
+        }
+    });
+
+    thickRadio.addEventListener('change', () => {
+        if (thickRadio.checked) {
+            Module._set_config_safire(Module._get_config_safire() & ~(1 << 5));
+            saveConfig();
+        }
+    });
+
+    sapeaksCheckbox.addEventListener('change', () => {
+        Module._set_config_sa_peaks(sapeaksCheckbox.checked ? 1 : 0);
+        saveConfig();
+    });
+
+    falloffSpeedRange.addEventListener('input', () => {
+        Module._set_config_safalloff(parseInt(falloffSpeedRange.value));
+        saveConfig();
+    });
+
+    peakFalloffSpeedRange.addEventListener('input', () => {
+        Module._set_config_sa_peak_falloff(parseInt(peakFalloffSpeedRange.value));
+        saveConfig();
+    });
+
+    dotsRadio.addEventListener('change', () => {
+        if (dotsRadio.checked) {
+            Module._set_config_safire(Module._get_config_safire() & ~(3 << 2));
+            saveConfig();
+        }
+    });
+
+    linesRadio.addEventListener('change', () => {
+        if (linesRadio.checked) {
+            Module._set_config_safire((Module._get_config_safire() & ~(3 << 2)) | (1 << 2));
+            saveConfig();
+        }
+    });
+
+    solidRadio.addEventListener('change', () => {
+        if (solidRadio.checked) {
+            Module._set_config_safire((Module._get_config_safire() & ~(3 << 2)) | (2 << 2));
+            saveConfig();
+        }
+    });
+
+    normalvuRadio.addEventListener('change', () => {
+        if (normalvuRadio.checked) {
+            Module._set_config_vufire(0);
+            saveConfig();
+        }
+    });
+
+    firevuRadio.addEventListener('change', () => {
+        if (firevuRadio.checked) {
+            Module._set_config_vufire(1);
+            saveConfig();
+        }
+    });
+
+    linevuRadio.addEventListener('change', () => {
+        if (linevuRadio.checked) {
+            Module._set_config_vufire(2);
+            saveConfig();
+        }
+    });
+
+    vupeaksCheckbox.addEventListener('change', () => {
+        Module._set_config_vu_peaks(vupeaksCheckbox.checked ? 1 : 0);
+        saveConfig();
+    });
+
+    vuPeakFalloffSpeedRange.addEventListener('input', () => {
+        Module._set_config_vu_peak_falloff(parseInt(vuPeakFalloffSpeedRange.value));
+        saveConfig();
     });
 
     function updateAndRender() {

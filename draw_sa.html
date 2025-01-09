@@ -17,14 +17,118 @@
         #audioPlayer {
             display: block;
             margin-top: 14px; /* Adjust the margin as needed */
+            width: 600px;
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/98.css" />
 </head>
 <body>
     <h2>Built-in Winamp Visualizer in WebAssembly</h2>
     <canvas id="specCanvas" width="152" height="32"></canvas>
     <audio id="audioPlayer" controls></audio>
     <input type="file" id="audioFileInput" accept="audio/*" />
+
+    <div class="window" style="margin: 4px; width: 350px">
+        <div class="title-bar">
+          <div class="title-bar-text">
+            Classic Visualization
+          </div>
+        </div>
+        <div class="window-body">
+          <form>
+            <fieldset>
+              <legend>Classic Visualization Settings</legend>
+                <label>Classic skins have a simple visualization in the main window. You can select what kind of visualization here or click on the visualization to cycle through the modes.</label><br/><br/>
+                <select id="visualizationDropdown" style="width: 310px">
+                  <option value="1">Spectrum analyzer</option>
+                  <option value="2">Oscilloscope</option>
+                  <option value="3">VU meter</option>
+                  <option value="0">Disabled</option>
+                </select><br/><br/>
+            </fieldset>
+          </form>
+        <form>
+            <fieldset>
+              <legend>Spectrum Analyser Options</legend>
+              <label for="radio">Coloring style:</label>
+              <input type="radio" id="normal" name="coloringStyle" value="normal" />
+              <label for="normal">Normal</label>
+
+              <input type="radio" id="fire" name="coloringStyle" value="fire" />
+              <label for="fire">Fire</label>
+
+              <input type="radio" id="line" name="coloringStyle" value="line" />       
+              <label for="line">Line</label><br/><br/>
+
+              <label for="radio">Band line width:</label>
+              <input type="radio" id="thin" name="bandwidth" value="thin" />
+              <label for="thin">Thin</label>
+
+              <input type="radio" id="thick" name="bandwidth" value="thick" />
+              <label for="thick">Thick</label><br/><br/>
+
+              <input type="checkbox" id="sapeaks">
+              <label for="sapeaks">Show peaks</label><br/><br/>
+
+              <div class="field-row" style="width: 200px">
+                <label for="range22">Falloff speed:</label><br/>
+                <label for="range23">Slow</label>
+                <input id="range23" type="range" min="0" max="4" value="2" />
+                <label for="range24">Fast</label>
+              </div>
+
+              <div class="field-row" style="width: 200px">
+                <label for="range32">Peak falloff speed:</label><br/>
+                <label for="range33">Slow</label>
+                <input id="range33" type="range" min="0" max="4" value="1" />
+                <label for="range34">Fast</label>
+              </div>
+
+            </fieldset>
+          </form>
+
+          <form>
+            <fieldset>
+              <legend>Oscilloscope Options</legend>
+              <label for="radio">Oscilloscope drawing style:</label>
+              <input type="radio" id="dots" name="oscstyle" value="dots" />
+              <label for="dots">Dots</label>
+
+              <input type="radio" id="lines" name="oscstyle" value="lines" />
+              <label for="lines">Lines</label>
+
+              <input type="radio" id="solid" name="oscstyle" value="solid" />       
+              <label for="solid">Solid</label>
+            </fieldset>
+          </form>
+
+          <form>
+            <fieldset>
+              <legend>VU Meter Options</legend>
+              <label for="radio">Coloring style:</label>
+              <input type="radio" id="normalvu" name="coloringStyleVU" value="normal" />
+              <label for="normalvu">Normal</label>
+
+              <input type="radio" id="firevu" name="coloringStyleVU" value="fire" />
+              <label for="firevu">Fire</label>
+
+              <input type="radio" id="linevu" name="coloringStyleVU" value="line" />       
+              <label for="linevu">Line</label><br/><br/>
+
+              <input type="checkbox" id="vupeaks">
+              <label for="vupeaks">Show peaks</label><br/><br/>
+
+              <div class="field-row" style="width: 200px">
+                <label for="range42">Peak falloff speed:</label><br/>
+                <label for="range43">Slow</label>
+                <input id="range43" type="range" min="0" max="4" value="1" />
+                <label for="range44">Fast</label>
+              </div>
+            </fieldset>
+          </form>
+        </div>
+    </div>
+
     <script src="./coi-serviceworker.js"></script>
     <script src="draw_sa.js"></script>
     <script src="thefunny.js"></script>

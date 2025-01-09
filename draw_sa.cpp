@@ -19,10 +19,13 @@
 unsigned char config_dsize = 0;
 unsigned char config_windowshade = 0;
 unsigned char config_sa = 0;
+unsigned char config_vufire = 0;
 unsigned char config_safire = 4;
-unsigned char config_safalloff = 4;
+unsigned char config_safalloff = 2;
 unsigned char config_sa_peaks = 1;
-unsigned char config_sa_peak_falloff = 0;
+unsigned char config_vu_peaks = 1;
+unsigned char config_sa_peak_falloff = 1;
+unsigned char config_vu_peak_falloff = 1;
 int config_mw_open = 1;
 int draw_initted = 1;
 unsigned char* specData = new unsigned char[76 * 16 * 4];
@@ -74,6 +77,76 @@ extern "C" {
         config_sa = value;
     }
 
+	// Getter for config_safire
+    unsigned char get_config_safire() {
+        return config_safire;
+    }
+
+    // Setter for config_safire
+    void set_config_safire(unsigned char value) {
+        config_safire = value;
+    }
+
+		// Getter for config_vufire
+    unsigned char get_config_vufire() {
+        return config_vufire;
+    }
+
+    // Setter for config_vufire
+    void set_config_vufire(unsigned char value) {
+        config_vufire = value;
+    }
+
+	// Getter for config_safalloff
+    unsigned char get_config_safalloff() {
+        return config_safalloff;
+    }
+
+    // Setter for config_safalloff
+    void set_config_safalloff(unsigned char value) {
+        config_safalloff = value;
+    }
+
+	// Getter for config_sa_peak_falloff
+    unsigned char get_config_sa_peak_falloff() {
+        return config_sa_peak_falloff;
+    }
+
+    // Setter for config_sa_peak_falloff
+    void set_config_sa_peak_falloff(unsigned char value) {
+        config_sa_peak_falloff = value;
+    }
+
+	// Getter for config_sa_peaks
+    unsigned char get_config_sa_peaks() {
+        return config_sa_peaks;
+    }
+
+    // Setter for config_sa_peaks
+    void set_config_sa_peaks(unsigned char value) {
+        config_sa_peaks = value;
+    }
+
+	// Getter for config_vu_peak_falloff
+    unsigned char get_config_vu_peak_falloff() {
+        return config_vu_peak_falloff;
+    }
+
+    // Setter for config_vu_peak_falloff
+    void set_config_vu_peak_falloff(unsigned char value) {
+        config_vu_peak_falloff = value;
+    }
+
+	// Getter for config_vu_peaks
+    unsigned char get_config_vu_peaks() {
+        return config_vu_peaks;
+    }
+
+    // Setter for config_vu_peaks
+    void set_config_vu_peaks(unsigned char value) {
+        config_vu_peaks = value;
+    }
+
     EMSCRIPTEN_KEEPALIVE
     unsigned char* get_specData() {
         return specData;
@@ -98,8 +171,7 @@ extern "C" {
 		float pfo[5]={1.05f,1.1f,1.2f,1.4f,1.6f};
 		int dbx;
 		float spfo;
-
-		//std::cout << "Called" << std::endl;
+		float vpfo;
 
 		//int ws=0;
 		//s = 1;
@@ -107,6 +179,7 @@ extern "C" {
 
 		dbx = fo[std::max(static_cast<int>(std::min(static_cast<int>(config_safalloff), 4)), 0)];
 		spfo = pfo[std::max(static_cast<int>(std::min(static_cast<int>(config_sa_peak_falloff), 4)), 0)];
+		vpfo = pfo[std::max(static_cast<int>(std::min(static_cast<int>(config_vu_peak_falloff), 4)), 0)];
 		sa_safe++;
 		if (sa_kill || !draw_initted || !specData)
 		{
@@ -555,16 +628,26 @@ extern "C" {
 
 					// Draw first VU meter bar
 					for (y = 0; y < 7*2; y++) { // Iterate over the height (7 pixels tall)
+					unsigned char colorIndex;
 						gmem = specData + (76 * 2 * (y1 + y)); // Calculate the starting point for each row
+						//v = 150;
+						if (v >= 150) v = 150;
+						// it is very stupid to assume that our value will never go above the maximum, evidently this can still happen
 						for (int x = 0; x < v && (x < 150); x++) { // Ensure bounds
-							unsigned char colorIndex = static_cast<unsigned char>((-x + (84*2)) / (4.7f * 2));
+							if (config_vufire == 0) {
+								colorIndex = static_cast<unsigned char>((-x + (84*2)) / (4.667f * 2)); // normal
+							} else if (config_vufire == 1) {
+								colorIndex = static_cast<unsigned char>((-x + (v - 150) + (84*2)) / (4.667f * 2)); // fire
+							} else if (config_vufire == 2) {
+								colorIndex = static_cast<unsigned char>((-v + (84*2)) / (4.667f * 2)); // line
+							}
 							*gmem = colorIndex; // Set the pixel value for the bar
 							gmem += 1; // Move horizontally by 1 pixel
 						}
 
 						// Draw the peak marker horizontally
 						int peakPos = static_cast<int>(v_bx[0]) / 256; // Calculate the position of the peak marker
-						if (peakPos > 1 && peakPos < 152) { // Ensure the peak position is within bounds
+						if (config_vu_peaks && (peakPos > 1 && peakPos < 152)) { // Ensure the peak position is within bounds
 							specData[76 * 2 * (y1 + y) + peakPos] = 23; // Set the pixel value for the peak marker
 							specData[76 * 2 * (y1 + y) + peakPos + 1] = 23; // Set the pixel value for the peak marker
 						}
@@ -572,26 +655,33 @@ extern "C" {
 
 					// Draw second VU meter bar
 					for (y = 0; y < 7*2; y++) { // Iterate over the height (7 pixels tall)
+					unsigned char colorIndex;
 						gmem = specData + (76 * 2 * (y2 + y)); // Calculate the starting point for each row
 						for (int x = 0; x < v1 && (x < 150); x++) { // Ensure bounds
-							unsigned char colorIndex = static_cast<unsigned char>((-x + (84*2)) / (4.7f * 2));
+							if (config_vufire == 0) {
+								colorIndex = static_cast<unsigned char>((-x + (84*2)) / (4.667f * 2)); // normal
+							} else if (config_vufire == 1) {
+								colorIndex = static_cast<unsigned char>((-x + (v1 - 150) + (84*2)) / (4.667f * 2)); // fire
+							} else if (config_vufire == 2) {
+								colorIndex = static_cast<unsigned char>((-v1 + (84*2)) / (4.667f * 2)); // line
+							}
 							*gmem = colorIndex; // Set the pixel value
 							gmem += 1; // Move horizontally by 1 pixel
 						}
 						// Draw the peak marker horizontally
 						int peakPos = static_cast<int>(v_bx[1]) / 256; // Calculate the position of the peak marker
-						if (peakPos > 1 && peakPos < 152) { // Ensure the peak position is within bounds
+						if (config_vu_peaks && (peakPos > 1 && peakPos < 152)) { // Ensure the peak position is within bounds
 							specData[76 * 2 * (y2 + y) + peakPos] = 23; // Set the pixel value for the peak marker
 							specData[76 * 2 * (y2 + y) + peakPos + 1] = 23; // Set the pixel value for the peak marker
 						}
 					}
 
 					v_bx[0] -= (int)v_vx[0];
-					v_vx[0] *= spfo;
+					v_vx[0] *= vpfo;
 					if (v_bx[0] < 0) v_bx[0]=0;
 
 					v_bx[1] -= (int)v_vx[1];
-					v_vx[1] *= spfo;
+					v_vx[1] *= vpfo;
 					if (v_bx[1] < 0) v_bx[1]=0;
 				}
 				if (config_sa == 1)
